@@ -37,11 +37,44 @@ pnpm dev
 
 Get the three env values from **Site Builder → Developer → Package API & Unkey keys** inside the BIAB dashboard. See the [Getting Started](https://biab-dev-docs.vercel.app/docs/getting-started) doc for the full walkthrough.
 
+## Schema as code via MCP
+
+Each starter ships ready to read data. To **define a schema and seed data programmatically** — instead of clicking through the dashboard — every BIAB tenant exposes two surfaces:
+
+1. **MCP endpoint** at `https://<tenant-host>/api/mcp` — JSON-RPC 2.0 tools an AI client (Claude desktop, Cursor, ChatGPT, Goose, VSCode) can call to read the catalog or capture quote requests. Discovery manifest at `/.well-known/mcp.json`.
+2. **Package API** at `https://<tenant-host>/api/package/v1` — bearer-key client (`@biab-dev/sdk`) that creates collections, upserts rows, and reads them back.
+
+The MCP surface today covers visitor-facing agent tools (catalog reads, quote capture). **Schema definition + bulk-seed live on the SDK side.** From any starter:
+
+```ts
+const site = biab.site(process.env.BIAB_SITE_ID!);
+
+// 1. Define schema
+await site.collections.create({
+  name: "Launch Inventory",
+  slug: "launch-inventory",
+  fields: [
+    { name: "sku", type: "string", required: true, queryable: true },
+    { name: "title", type: "string", required: true, searchable: true },
+    { name: "priceCents", type: "number", required: true },
+    { name: "available", type: "boolean", required: true, queryable: true },
+  ],
+});
+
+// 2. Seed rows (loop or bounded concurrency)
+for (const data of seedRows) {
+  await site.rows.upsert("launch-inventory", { data });
+}
+```
+
+Full walkthrough — MCP handshake, all 11 framework patterns, error handling, and the roadmap for `define_collection` / `seed_rows` MCP tools — at [MCP, Schema, and Seeding](https://biab-dev-docs.vercel.app/docs/mcp-schema-and-seeding).
+
 ## Docs
 
 - [SDK overview & getting started](https://biab-dev-docs.vercel.app/docs/getting-started)
 - [Authentication & scopes](https://biab-dev-docs.vercel.app/docs/authentication-and-scopes)
 - [Collections & rows](https://biab-dev-docs.vercel.app/docs/collections-and-rows)
+- [MCP, schema, and seeding](https://biab-dev-docs.vercel.app/docs/mcp-schema-and-seeding)
 - [Customer portal](https://biab-dev-docs.vercel.app/docs/customer-portal)
 - [All framework starters reference](https://biab-dev-docs.vercel.app/docs/starter-templates)
 
