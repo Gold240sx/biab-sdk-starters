@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Your Business — built on BIAB</title>
+		<meta
+			name="description"
+			content="Vanilla JS starter showing how to consume the BIAB SDK through a same-origin Bun proxy."
+		/>
+		<link rel="stylesheet" href="/styles.css" />
+	</head>
+	<body>
+		<!-- Sections are mounted by JS — see /main.js. Pure DOM
+		     manipulation, no framework, no JSX. The same shape as the
+		     React-Bun starter, just rendered with vanilla `document.createElement`. -->
+		<header class="app-header">
+			<div class="app-header__inner">
+				<div class="app-header__brand">Your Business</div>
+				<nav>
+					<a href="#services">Services</a>
+					<a href="#gallery">Gallery</a>
+					<a href="#booking">Book</a>
+					<a href="#blog">Blog</a>
+					<a href="#contact">Contact</a>
+				</nav>
+			</div>
+		</header>
+
+		<main>
+			<section class="hero" id="hero"></section>
+			<section class="biab-section biab-section--narrow" id="about"></section>
+			<section class="biab-section" id="services"></section>
+			<section class="biab-section" id="gallery"></section>
+			<section class="biab-section biab-section--narrow" id="booking"></section>
+			<section class="biab-section" id="blog"></section>
+			<section class="biab-section biab-section--narrow" id="contact"></section>
+		</main>
+
+		<footer class="app-footer">
+			<div>© <span id="year"></span> Your Business. All rights reserved.</div>
+			<div>
+				Built with
+				<a href="https://github.com/Gold240sx/business-in-a-box">@biab-dev/sdk</a>
+			</div>
+		</footer>
+
+		<script type="module" src="/main.js"></script>
+	</body>
+</html>

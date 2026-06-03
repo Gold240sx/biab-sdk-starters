@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Your Business — built on BIAB</title>
+		<meta
+			name="description"
+			content="HTMX starter showing how to consume the BIAB SDK server-side and stream HTML fragments per section."
+		/>
+		<link rel="stylesheet" href="/styles.css" />
+		<!-- HTMX from a CDN; pin the version in production. -->
+		<script
+			src="https://unpkg.com/htmx.org@2.0.4"
+			integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+			crossorigin="anonymous"
+		></script>
+	</head>
+	<body>
+		<!--
+			Every visible region is a thin HTMX placeholder that fetches
+			its own HTML fragment on body load. `hx-trigger="load"` fires
+			the GET as soon as the element is parsed; `hx-swap="outerHTML"`
+			replaces the placeholder with the server's HTML, so the final
+			DOM has no wrapper noise.
+		-->
+		<div hx-get="/sections/header" hx-trigger="load" hx-swap="outerHTML"></div>
+		<main>
+			<div hx-get="/sections/hero" hx-trigger="load" hx-swap="outerHTML"></div>
+			<div hx-get="/sections/about" hx-trigger="load" hx-swap="outerHTML"></div>
+			<div hx-get="/sections/services" hx-trigger="load" hx-swap="outerHTML"></div>
+			<div hx-get="/sections/blog" hx-trigger="load" hx-swap="outerHTML"></div>
+			<div hx-get="/sections/contact" hx-trigger="load" hx-swap="outerHTML"></div>
+		</main>
+		<div hx-get="/sections/footer" hx-trigger="load" hx-swap="outerHTML"></div>
+		<!-- BIAB analytics. Config is injected by the Bun server (see
+		     server.ts → injectAnalyticsConfig) as `window.__BIAB_ANALYTICS__`
+		     so the public key never lives in this static file. -->
+		<script type="module">
+			const cfg = window.__BIAB_ANALYTICS__;
+			if (cfg && cfg.siteId && cfg.baseUrl && cfg.apiKey) {
+				const { initBiabAnalytics } = await import(
+					"https://esm.sh/@biab-dev/sdk@0.9.2/analytics-core"
+				);
+				initBiabAnalytics({
+					siteId: cfg.siteId,
+					baseUrl: cfg.baseUrl,
+					apiKey: cfg.apiKey,
+				});
+			}
+		</script>
+	</body>
+</html>

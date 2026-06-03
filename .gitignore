@@ -1,0 +1,49 @@
+# dependencies
+node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# build output
+.next/
+.nuxt/
+.output/
+.svelte-kit/
+.astro/
+.angular/
+.qwik/
+dist/
+build/
+
+# lockfiles (each starter ships an .env.example only; lock generated locally)
+bun.lockb
+yarn.lock
+package-lock.json
+# pnpm-lock.yaml left in for templates that pin via pnpm — adjust per template
+
+# env (the .example files ARE committed; real .env is not)
+.env
+.env.local
+.env.*.local
+.env.production
+
+# editors / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# tests / playwright
+playwright-report/
+test-results/

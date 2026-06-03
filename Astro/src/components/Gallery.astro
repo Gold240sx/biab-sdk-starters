@@ -1,0 +1,77 @@
+---
+/**
+ * Showcases the SDK's typed field selection. Because Astro
+ * components run on the server, the `fields` literal narrows the
+ * return type via const generics — TypeScript only lets us read the
+ * columns we asked for, and the server SELECTs only those columns.
+ */
+import { biab } from "../lib/biab";
+
+const FIELDS = ["id", "src", "title", "category", "blurDataURL"] as const;
+
+type GalleryItem = {
+	id: string;
+	src: string;
+	title?: string | null;
+	category?: string | null;
+	blurDataURL?: string | null;
+};
+
+let items: GalleryItem[] = [];
+let error: string | null = null;
+
+if (biab) {
+	try {
+		items = (await biab.gallery.list({
+			limit: 12,
+			fields: FIELDS,
+		})) as GalleryItem[];
+	} catch (err) {
+		error = err instanceof Error ? err.message : "Unknown error";
+	}
+}
+---
+
+<section class="biab-section" id="gallery">
+	<div class="biab-section__lead">
+		<span class="biab-section__eyebrow">Recent work</span>
+		<h2 class="biab-section__title">Gallery</h2>
+		<p class="biab-section__sub">
+			Pulled live from the BIAB gallery surface. Each tile only fetches the
+			fields it actually displays.
+		</p>
+	</div>
+	{
+		error ? (
+			<div class="biab-empty">Couldn't load gallery: {error}</div>
+		) : items.length === 0 ? (
+			<div class="biab-empty">
+				No gallery items yet. Add a few in BIAB and they'll appear here.
+			</div>
+		) : (
+			<div class="biab-grid-4">
+				{items.map((item) => (
+					<div class="biab-card gallery-tile">
+						{item.src ? (
+							<img
+								alt={item.title ?? item.category ?? "Gallery item"}
+								loading="lazy"
+								src={item.src}
+								style={
+									item.blurDataURL
+										? `background-image: url(${item.blurDataURL}); background-size: cover;`
+										: undefined
+								}
+							/>
+						) : null}
+						{item.title || item.category ? (
+							<div class="gallery-tile__caption">
+								{item.title ?? item.category}
+							</div>
+						) : null}
+					</div>
+				))}
+			</div>
+		)
+	}
+</section>

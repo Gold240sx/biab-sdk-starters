@@ -1,0 +1,9 @@
+node_modules/
+.tanstack/
+dist/
+.output/
+bun.lockb
+*.log
+.DS_Store
+.env
+.env.local

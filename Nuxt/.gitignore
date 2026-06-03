@@ -1,0 +1,10 @@
+node_modules/
+.output/
+.nuxt/
+.data/
+dist/
+bun.lockb
+*.log
+.DS_Store
+.env
+.env.local

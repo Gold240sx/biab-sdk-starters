@@ -1,0 +1,285 @@
+---
+/**
+ * Booking section — full Calendly-shape flow.
+ *
+ * Server-render the event-type list (Class A — cached, no key in
+ * the browser). Slots + booking confirmation are interactive, so a
+ * `<script>` block calls the same-origin Astro endpoints under
+ * `/api/biab/scheduling/*` which forward to BIAB via the SDK.
+ *
+ * The browser only ever sees same-origin paths; the API key stays
+ * on the Astro server.
+ */
+import { biab } from "../lib/biab";
+import type { SchedulingEventType } from "@biab-dev/sdk";
+
+let eventTypes: SchedulingEventType[] = [];
+
+if (biab) {
+	try {
+		eventTypes = await biab.scheduling.listEventTypes();
+	} catch {
+		eventTypes = [];
+	}
+}
+---
+
+<section class="biab-section biab-section--narrow" id="booking">
+	<div class="biab-section__lead">
+		<span class="biab-section__eyebrow">Schedule</span>
+		<h2 class="biab-section__title">Book a time</h2>
+		<p class="biab-section__sub">
+			Pick a slot and we'll send confirmation + a calendar invite.
+		</p>
+	</div>
+
+	<div class="biab-card booking" data-booking-root>
+		{
+			eventTypes.length === 0 ? (
+				<div class="biab-empty">
+					No event types configured yet. Add one in BIAB at Dashboard →
+					Scheduling → Event Types.
+				</div>
+			) : (
+				<>
+					<div>
+						<label class="biab-label" for="event-type">
+							What for?
+						</label>
+						<select class="biab-select" id="event-type" data-event-select>
+							{eventTypes.map((ev) => (
+								<option value={ev.slug}>
+									{ev.name} · {ev.durationMinutes}min
+								</option>
+							))}
+						</select>
+					</div>
+					<div>
+						<div class="biab-label">Next available slots</div>
+						<div data-slots>
+							<div class="biab-loading">Loading availability…</div>
+						</div>
+					</div>
+					<div data-invitee hidden>
+						<div class="field-row field-row--cols">
+							<div>
+								<label class="biab-label" for="booking-name">
+									Your name
+								</label>
+								<input
+									class="biab-input"
+									id="booking-name"
+									name="name"
+									placeholder="Jane Doe"
+								/>
+							</div>
+							<div>
+								<label class="biab-label" for="booking-email">
+									Email
+								</label>
+								<input
+									class="biab-input"
+									id="booking-email"
+									name="email"
+									placeholder="jane@example.com"
+									type="email"
+								/>
+							</div>
+						</div>
+						<div style="margin-top: 1rem;">
+							<label class="biab-label" for="booking-phone">
+								Phone (optional)
+							</label>
+							<input
+								class="biab-input"
+								id="booking-phone"
+								name="phone"
+								placeholder="(555) 555-0100"
+								type="tel"
+							/>
+						</div>
+						<div style="margin-top: 1rem;">
+							<label class="biab-label" for="booking-notes">
+								Anything we should know?
+							</label>
+							<textarea
+								class="biab-textarea"
+								id="booking-notes"
+								name="notes"
+								placeholder="Optional"
+							/>
+						</div>
+						<button
+							class="biab-btn"
+							data-confirm
+							style="margin-top: 1rem;"
+							type="button"
+						>
+							Confirm booking
+						</button>
+					</div>
+					<div data-error hidden></div>
+				</>
+			)
+		}
+	</div>
+</section>
+
+<script>
+	/**
+	 * Client island — kicks off only after hydration. Talks to
+	 * same-origin Astro endpoints; the SDK + bearer key live on the
+	 * server.
+	 */
+	const root = document.querySelector<HTMLDivElement>("[data-booking-root]");
+	if (root) {
+		const eventSelect = root.querySelector<HTMLSelectElement>(
+			"[data-event-select]",
+		);
+		const slotsBox = root.querySelector<HTMLDivElement>("[data-slots]");
+		const inviteeBox = root.querySelector<HTMLDivElement>("[data-invitee]");
+		const errorBox = root.querySelector<HTMLDivElement>("[data-error]");
+		const confirmBtn = root.querySelector<HTMLButtonElement>("[data-confirm]");
+
+		let pickedSlot: string | null = null;
+
+		function startOfTomorrow() {
+			const d = new Date();
+			d.setDate(d.getDate() + 1);
+			d.setHours(0, 0, 0, 0);
+			return d;
+		}
+		function plusWeek(d: Date) {
+			const n = new Date(d);
+			n.setDate(n.getDate() + 7);
+			return n;
+		}
+		function formatSlotTime(iso: string) {
+			return new Date(iso).toLocaleString(undefined, {
+				weekday: "short",
+				month: "short",
+				day: "numeric",
+				hour: "numeric",
+				minute: "2-digit",
+			});
+		}
+
+		async function loadSlots(slug: string) {
+			if (!slotsBox) return;
+			slotsBox.innerHTML =
+				'<div class="biab-loading">Computing availability…</div>';
+			if (inviteeBox) inviteeBox.hidden = true;
+			pickedSlot = null;
+			try {
+				const from = startOfTomorrow();
+				const to = plusWeek(from);
+				const params = new URLSearchParams({
+					slug,
+					from: from.toISOString(),
+					to: to.toISOString(),
+				});
+				const res = await fetch(`/api/biab/scheduling/slots?${params}`);
+				if (!res.ok) throw new Error(await res.text());
+				const data = (await res.json()) as {
+					slots: Array<{ startAt: string; endAt: string }>;
+				};
+				if (!data.slots.length) {
+					slotsBox.innerHTML =
+						'<div class="biab-empty">No availability in the next week.</div>';
+					return;
+				}
+				slotsBox.innerHTML = "";
+				const row = document.createElement("div");
+				row.className = "booking__row";
+				for (const slot of data.slots.slice(0, 12)) {
+					const btn = document.createElement("button");
+					btn.type = "button";
+					btn.className = "slot-button";
+					btn.textContent = formatSlotTime(slot.startAt);
+					btn.addEventListener("click", () => {
+						pickedSlot = slot.startAt;
+						row
+							.querySelectorAll<HTMLButtonElement>(".slot-button")
+							.forEach((b) => b.setAttribute("aria-pressed", "false"));
+						btn.setAttribute("aria-pressed", "true");
+						if (inviteeBox) inviteeBox.hidden = false;
+						if (confirmBtn) {
+							confirmBtn.textContent = `Book ${formatSlotTime(slot.startAt)}`;
+						}
+					});
+					row.append(btn);
+				}
+				slotsBox.append(row);
+			} catch (err) {
+				const message = err instanceof Error ? err.message : "Unknown error";
+				slotsBox.innerHTML = `<div class="biab-empty">Couldn't load slots: ${message}</div>`;
+			}
+		}
+
+		async function handleConfirm() {
+			if (!pickedSlot || !confirmBtn || !errorBox) return;
+			const slug = eventSelect?.value;
+			const name = (
+				root!.querySelector<HTMLInputElement>("#booking-name")?.value ?? ""
+			).trim();
+			const email = (
+				root!.querySelector<HTMLInputElement>("#booking-email")?.value ?? ""
+			).trim();
+			const phone = (
+				root!.querySelector<HTMLInputElement>("#booking-phone")?.value ?? ""
+			).trim();
+			const notes = (
+				root!.querySelector<HTMLTextAreaElement>("#booking-notes")?.value ?? ""
+			).trim();
+			if (!slug || !name || !email) {
+				errorBox.hidden = false;
+				errorBox.textContent = "Name and email are required.";
+				errorBox.style.cssText =
+					"color: var(--danger); background: var(--danger-bg); padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem;";
+				return;
+			}
+			confirmBtn.disabled = true;
+			confirmBtn.textContent = "Confirming…";
+			errorBox.hidden = true;
+			try {
+				const res = await fetch("/api/biab/scheduling/bookings", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						eventTypeSlug: slug,
+						startAt: pickedSlot,
+						invitee: {
+							name,
+							email,
+							phone: phone || null,
+							timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+						},
+						notes: notes || null,
+					}),
+				});
+				if (!res.ok) throw new Error(await res.text());
+				const result = (await res.json()) as { bookingId: string };
+				root!.innerHTML = `
+					<span class="biab-badge" style="align-self: flex-start;">Booked</span>
+					<h2 class="biab-section__title">You're on the calendar.</h2>
+					<p style="color: var(--text);">Booking confirmed (#${result.bookingId.slice(0, 8)}). Check ${email} for details.</p>
+				`;
+			} catch (err) {
+				const message = err instanceof Error ? err.message : "Couldn't confirm.";
+				errorBox.hidden = false;
+				errorBox.textContent = message;
+				errorBox.style.cssText =
+					"color: var(--danger); background: var(--danger-bg); padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem;";
+				confirmBtn.disabled = false;
+				confirmBtn.textContent = "Confirm booking";
+			}
+		}
+
+		eventSelect?.addEventListener("change", () => {
+			if (eventSelect.value) loadSlots(eventSelect.value);
+		});
+		confirmBtn?.addEventListener("click", handleConfirm);
+
+		if (eventSelect?.value) loadSlots(eventSelect.value);
+	}
+</script>

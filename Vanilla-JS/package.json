@@ -1,0 +1,17 @@
+{
+	"name": "biab-vanilla-js",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "bun --watch run server.ts",
+		"start": "bun run server.ts"
+	},
+	"dependencies": {
+		"@biab-dev/sdk": "^0.9.2"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.1.18",
+		"typescript": "^5.6.0"
+	}
+}

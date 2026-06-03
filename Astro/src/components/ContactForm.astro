@@ -1,0 +1,148 @@
+---
+/**
+ * Contact form — schema-driven.
+ *
+ * Server-render the field definitions (cached on BIAB; admin edits
+ * in the dashboard update them via webhook). Client `<script>`
+ * posts the data through the Astro endpoint, which calls
+ * `biab.forms.submit(...)` — the SDK runs `validateFormSubmission`
+ * against the same schema server-side before persisting.
+ */
+import { biab } from "../lib/biab";
+import type { FormSchema, FormFieldDef } from "@biab-dev/sdk";
+
+const FORM_SLUG = "contact";
+
+const FALLBACK_SCHEMA: FormSchema = {
+	id: "fallback",
+	slug: FORM_SLUG,
+	title: "Get in touch",
+	description: "We'll get back within one business day.",
+	fields: [
+		{ id: "name", label: "Name", type: "text", required: true },
+		{ id: "email", label: "Email", type: "email", required: true },
+		{ id: "message", label: "Message", type: "textarea", required: true },
+	],
+};
+
+let schema: FormSchema = FALLBACK_SCHEMA;
+
+if (biab) {
+	try {
+		schema = await biab.forms.schema(FORM_SLUG);
+	} catch {
+		// stay on fallback
+	}
+}
+
+function inputType(field: FormFieldDef): "email" | "text" {
+	return field.type === "email" ? "email" : "text";
+}
+---
+
+<section class="biab-section biab-section--narrow" id="contact">
+	<div class="biab-section__lead">
+		<span class="biab-section__eyebrow">Contact</span>
+		<h2 class="biab-section__title">{schema.title ?? "Get in touch"}</h2>
+		{
+			schema.description ? (
+				<p class="biab-section__sub">{schema.description}</p>
+			) : null
+		}
+	</div>
+
+	<form
+		class="biab-card contact"
+		data-contact-form
+		data-form-slug={FORM_SLUG}
+	>
+		{
+			schema.fields.map((field) => (
+				<div>
+					<label class="biab-label" for={`field-${field.id}`}>
+						{field.label}
+						{field.required ? " *" : ""}
+					</label>
+					{field.type === "textarea" ? (
+						<textarea
+							class="biab-textarea"
+							id={`field-${field.id}`}
+							name={field.id}
+							placeholder={field.placeholder ?? ""}
+							required={field.required}
+						/>
+					) : (
+						<input
+							class="biab-input"
+							id={`field-${field.id}`}
+							name={field.id}
+							placeholder={field.placeholder ?? ""}
+							required={field.required}
+							type={inputType(field)}
+						/>
+					)}
+				</div>
+			))
+		}
+		<button class="biab-btn" style="align-self: flex-start;" type="submit">
+			Send message
+		</button>
+		<div data-form-error hidden></div>
+	</form>
+</section>
+
+<script>
+	const form = document.querySelector<HTMLFormElement>("[data-contact-form]");
+	const errorBox = form?.querySelector<HTMLDivElement>("[data-form-error]");
+
+	form?.addEventListener("submit", async (event) => {
+		event.preventDefault();
+		if (!form || !errorBox) return;
+		errorBox.hidden = true;
+		const slug = form.dataset.formSlug;
+		if (!slug) return;
+		const submitBtn = form.querySelector<HTMLButtonElement>(
+			"button[type=submit]",
+		);
+		if (submitBtn) {
+			submitBtn.disabled = true;
+			submitBtn.textContent = "Sending…";
+		}
+		const data: Record<string, string> = {};
+		new FormData(form).forEach((value, key) => {
+			data[key] = String(value);
+		});
+		try {
+			const res = await fetch(
+				`/api/biab/forms/${encodeURIComponent(slug)}`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						data,
+						submitterEmail: data.email,
+						submitterName: data.name,
+					}),
+				},
+			);
+			if (!res.ok) throw new Error(await res.text());
+			form.outerHTML = `
+				<div class="biab-card contact">
+					<span class="biab-badge" style="align-self: flex-start;">Received</span>
+					<h2 class="biab-section__title">Got it.</h2>
+					<p>Thanks — we'll be in touch within one business day.</p>
+				</div>
+			`;
+		} catch (err) {
+			const message = err instanceof Error ? err.message : "Couldn't submit.";
+			errorBox.hidden = false;
+			errorBox.textContent = message;
+			errorBox.style.cssText =
+				"color: var(--danger); background: var(--danger-bg); padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem;";
+			if (submitBtn) {
+				submitBtn.disabled = false;
+				submitBtn.textContent = "Send message";
+			}
+		}
+	});
+</script>

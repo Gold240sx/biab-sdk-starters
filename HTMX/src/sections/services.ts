@@ -1,0 +1,72 @@
+import { getBiab } from "../biab";
+import { html, render } from "../html";
+
+type Service = {
+	id: string;
+	name: string;
+	description: string;
+	priceLabel: string;
+};
+
+const defaults: Service[] = [
+	{
+		id: "tuneup",
+		name: "Annual tune-up",
+		description: "Pre-season inspection + tune-up.",
+		priceLabel: "from $149",
+	},
+	{
+		id: "install",
+		name: "Install",
+		description: "New equipment install with a 10-year warranty.",
+		priceLabel: "quote on site",
+	},
+	{
+		id: "repair",
+		name: "Repair",
+		description: "Same-day repair for most makes + models.",
+		priceLabel: "$95 diagnostic",
+	},
+];
+
+export async function renderServices(): Promise<string> {
+	let items = defaults;
+	const biab = getBiab();
+	if (biab) {
+		try {
+			const list = await biab.store.listProducts({
+				limit: 6,
+				category: "services",
+			});
+			if (Array.isArray(list?.items) && list.items.length > 0) {
+				items = list.items.map((p) => ({
+					id: p.id,
+					name: p.name,
+					description: p.description ?? "",
+					priceLabel:
+						p.priceCents != null
+							? `from $${(p.priceCents / 100).toFixed(0)}`
+							: "quote on site",
+				}));
+			}
+		} catch {
+			/* keep defaults */
+		}
+	}
+	return render(html`
+		<section class="section" id="services">
+			<h2 class="section__title">Services</h2>
+			<div class="grid">
+				${items.map(
+					(s) => html`
+						<article class="card">
+							<h3>${s.name}</h3>
+							<p>${s.description}</p>
+							<span class="price">${s.priceLabel}</span>
+						</article>
+					`,
+				)}
+			</div>
+		</section>
+	`);
+}

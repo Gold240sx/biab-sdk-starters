@@ -1,0 +1,62 @@
+---
+/**
+ * Generic business site composed of server-rendered sections.
+ *
+ * Each section component reads from `biab.*` directly. The
+ * static-data sections (Hero, About, Services, Gallery, Blog) are
+ * pure server-render — zero JS in the browser. Booking and
+ * ContactForm ship a tiny client island that talks to Astro
+ * endpoints under `/api/biab/*`.
+ *
+ * Same canonical shape as the React-Bun and Vanilla-JS starters —
+ * only the framework + render strategy changes.
+ */
+import "../styles/global.css";
+
+import About from "../components/About.astro";
+import Blog from "../components/Blog.astro";
+import Booking from "../components/Booking.astro";
+import ContactForm from "../components/ContactForm.astro";
+import Footer from "../components/Footer.astro";
+import Gallery from "../components/Gallery.astro";
+import Header from "../components/Header.astro";
+import Hero from "../components/Hero.astro";
+import Services from "../components/Services.astro";
+
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Your Business — built on BIAB</title>
+		<meta
+			name="description"
+			content="Astro SSR starter showing how to consume the BIAB SDK directly during server render, with tiny client islands for interactive surfaces."
+		/>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<Hero />
+			<About />
+			<Services />
+			<Gallery />
+			<Booking />
+			<Blog />
+			<ContactForm />
+		</main>
+		<Footer />
+		<script>
+			import { initBiabAnalytics } from "@biab-dev/sdk/analytics-core";
+			const siteId = import.meta.env.PUBLIC_BIAB_SITE_ID;
+			const baseUrl = import.meta.env.PUBLIC_BIAB_PACKAGE_API_BASE_URL;
+			const apiKey = import.meta.env.PUBLIC_BIAB_PUBLIC_KEY;
+			if (siteId && baseUrl && apiKey) {
+				initBiabAnalytics({ siteId, baseUrl, apiKey });
+			}
+		</script>
+	</body>
+</html>
