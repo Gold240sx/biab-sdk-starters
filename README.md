@@ -35,15 +35,15 @@ pnpm install                  # or npm / bun / yarn — each starter declares it
 pnpm dev
 ```
 
-Get the three env values from **Site Builder → Developer → Package API & Unkey keys** inside the BIAB dashboard. See the [Getting Started](https://www.biab.app/docs/getting-started) doc for the full walkthrough.
+Get the three env values from **Site Builder → Developer → Package API & Unkey keys** inside the BIAB dashboard. See the [Getting Started](https://biab-dev-docs.vercel.app/docs/getting-started) doc for the full walkthrough.
 
 ## Docs
 
-- [SDK overview & getting started](https://www.biab.app/docs/getting-started)
-- [Authentication & scopes](https://www.biab.app/docs/authentication-and-scopes)
-- [Collections & rows](https://www.biab.app/docs/collections-and-rows)
-- [Customer portal](https://www.biab.app/docs/customer-portal)
-- [All framework starters reference](https://www.biab.app/docs/starter-templates)
+- [SDK overview & getting started](https://biab-dev-docs.vercel.app/docs/getting-started)
+- [Authentication & scopes](https://biab-dev-docs.vercel.app/docs/authentication-and-scopes)
+- [Collections & rows](https://biab-dev-docs.vercel.app/docs/collections-and-rows)
+- [Customer portal](https://biab-dev-docs.vercel.app/docs/customer-portal)
+- [All framework starters reference](https://biab-dev-docs.vercel.app/docs/starter-templates)
 
 ## SDK package
 
